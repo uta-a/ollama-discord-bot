@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+
+# TTS サーバー（セットアップで生成されるファイル）
+tts-server/Qwen3-TTS-Openai-Fastapi/
+tts-server/profiles/*/reference.wav
