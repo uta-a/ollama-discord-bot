@@ -4,29 +4,42 @@
 
 ## 機能
 
-### LLM チャット
+### /ask — 単発質問
 
 | コマンド | 説明 |
 |---------|------|
-| `/gemma4 <prompt>` | Gemma4 e2b（軽量）に単発質問 |
-| `/gemma4-thinking <prompt>` | Gemma4 latest（標準）に単発質問 |
-| `/chat <prompt>` | マルチターン会話（ユーザー × チャンネルごとに履歴を保持）|
-| `/newchat` | 会話履歴をクリアして新しいチャットを開始（モデル選択は維持）|
-| `/models` | Ollama で利用可能なモデル一覧を表示 |
-| `/model set:<名前>` | 使用するモデルを切り替え（会話履歴はリセット）|
-| `/status` | Bot の状態を表示（処理中件数、セッション数など）|
-| `/ollama start/stop` | Ollama サーバーを起動・停止 |
+| `/ask prompt:<テキスト>` | AI に単発で質問する（履歴なし） |
+| `/ask prompt:<テキスト> model:<モデル名>` | モデルを指定して質問 |
+| `/ask prompt:<テキスト> file:<ファイル>` | 画像やテキストファイルを添付して質問 |
 
-### ボイスチャンネル TTS
+### /chat — マルチターン会話
 
 | コマンド | 説明 |
 |---------|------|
-| `/join` | 実行者のボイスチャンネルに Bot を参加させる |
-| `/leave` | Bot をボイスチャンネルから退出させる |
-| `/tts <prompt>` | テキストを音声に変換してボイスチャンネルで再生 |
-| `/tts-models` | 利用可能なボイスプロファイル一覧を表示 |
-| `/tts-model set:<名前>` | 使用するボイスプロファイルを切り替え |
-| `/tts-server start/stop/status` | TTS サーバーを起動・停止・状態確認 |
+| `/chat send prompt:<テキスト>` | メッセージを送る（会話履歴あり） |
+| `/chat send prompt:<テキスト> file:<ファイル>` | ファイルを添付して送る |
+| `/chat reset` | 会話履歴をクリア（モデル選択は維持） |
+| `/chat model name:<モデル名>` | 使用するモデルを切り替え（履歴はリセット） |
+
+### /voice — ボイスチャンネル・TTS
+
+| コマンド | 説明 |
+|---------|------|
+| `/voice join` | Bot をボイスチャンネルに参加させる |
+| `/voice leave` | Bot をボイスチャンネルから退出させる |
+| `/voice speak prompt:<テキスト>` | テキストを音声に変換して読み上げる |
+| `/voice profile name:<名前>` | ボイスプロファイルを切り替える |
+| `/voice profiles` | 利用可能なボイスプロファイル一覧を表示 |
+
+### /bot — 管理・設定
+
+| コマンド | 説明 |
+|---------|------|
+| `/bot status` | Bot の状態を表示 |
+| `/bot models` | 利用可能な AI モデル一覧を表示 |
+| `/bot ollama action:<start/stop>` | Ollama サーバーを起動・停止 |
+| `/bot tts-server action:<start/stop/status>` | TTS サーバーを操作 |
+| `/bot config key:<項目> value:<値>` | サーバー設定を確認・変更 |
 
 ### その他の特徴
 
@@ -178,14 +191,14 @@ tts-server/profiles/<名前>/
 }
 ```
 
-プロファイル追加後、`/tts-models` で一覧を確認し `/tts-model set:<名前>` で選択する。
+プロファイル追加後、`/voice profiles` で一覧を確認し `/voice profile name:<名前>` で選択する。
 
 ## トラブルシューティング
 
 **「Ollama に接続できません」と表示される**
 ```bash
 ollama serve
-# または Discord から /ollama start
+# または Discord から /bot ollama action:start
 ```
 
 **「モデルが見つかりません」と表示される**
@@ -196,7 +209,7 @@ ollama pull gemma4:e2b
 **TTS サーバーに接続できない**
 ```bash
 # Discord から
-/tts-server start
+/bot tts-server action:start
 # または手動で
 cd tts-server/Qwen3-TTS-Openai-Fastapi && .venv/bin/uvicorn main:app --port 8880
 ```

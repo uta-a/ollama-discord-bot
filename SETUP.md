@@ -277,13 +277,13 @@ npm start
 Discord のテストサーバーで以下を試す:
 
 ```
-/gemma4 prompt:こんにちは
+/ask prompt:こんにちは
 ```
 
 Bot から返答があれば正常。
 
 ```
-/status
+/bot status
 ```
 
 現在の処理件数やセッション数が表示される。
@@ -291,22 +291,22 @@ Bot から返答があれば正常。
 ### TTS（音声読み上げ）
 
 1. ボイスチャンネルに入る
-2. `/join` で Bot を招待
+2. `/voice join` で Bot を招待
 3. プロファイルを設定（デフォルトが未設定の場合）:
    ```
-   /tts-models
-   /tts-model set:yourname
+   /voice profiles
+   /voice profile name:yourname
    ```
 4. TTS を再生:
    ```
-   /tts prompt:こんにちは
+   /voice speak prompt:こんにちは
    ```
 
 音声が再生されれば正常。
 
 5. 退出:
    ```
-   /leave
+   /voice leave
    ```
 
 ---
@@ -326,7 +326,7 @@ ollama pull gemma4:e2b
 **TTS サーバーに接続できない**
 ```bash
 # Discord から
-/tts-server start
+/bot tts-server action:start
 # または手動で
 cd tts-server/Qwen3-TTS-Openai-Fastapi && .venv/bin/uvicorn main:app --port 8880
 ```
