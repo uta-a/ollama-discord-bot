@@ -127,8 +127,16 @@ export async function chatWithHistory(
  * 単発プロンプトを送信する（/gemma4 コマンド用・後方互換）。
  * 内部的には chatWithHistory を呼ぶ。
  */
-export async function generateResponse(prompt: string, model?: string): Promise<string> {
-  const message = await chatWithHistory([{ role: 'user', content: prompt }], model);
+export async function generateResponse(
+  prompt: string,
+  model?: string,
+  images?: string[]
+): Promise<string> {
+  const userMessage: Message = { role: 'user', content: prompt };
+  if (images && images.length > 0) {
+    userMessage.images = images;
+  }
+  const message = await chatWithHistory([userMessage], model);
   return message.content;
 }
 
