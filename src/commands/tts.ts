@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { synthesizeSpeech, TtsError } from '../lib/tts-client.js';
 import { playAudio, isConnected } from '../lib/voice-manager.js';
 import { getUserVoiceProfile, listVoiceProfiles } from '../lib/voice-profiles.js';
+import { getGuildConfig } from '../lib/guild-config.js';
 
 export const data = new SlashCommandBuilder()
   .setName('tts')
@@ -17,6 +18,15 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   const prompt = interaction.options.getString('prompt', true);
   const guildId = interaction.guildId!;
+
+  // TTS が有効か確認
+  if (!getGuildConfig(guildId).tts) {
+    await interaction.reply({
+      content: 'TTS はこのサーバーで無効になっています。`/config key:tts value:true` で有効にできます。',
+      ephemeral: true,
+    });
+    return;
+  }
 
   // Bot がVCにいるか確認
   if (!isConnected(guildId)) {
