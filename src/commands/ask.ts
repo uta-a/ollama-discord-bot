@@ -63,7 +63,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 
     const responseText = await generateResponse(effectivePrompt, model, images);
-    await sendLongReply(interaction, `**Prompt:** ${prompt}\n\n`, responseText);
+    await sendLongReply(interaction, '', responseText);
   } catch (err) {
     const errorMessage =
       err instanceof OllamaError || err instanceof AttachmentError

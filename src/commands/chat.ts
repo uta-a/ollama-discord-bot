@@ -1,5 +1,5 @@
 import { AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { chatWithHistory, listModels, modelExists, OllamaError } from '../lib/ollama.js';
+import { chatWithHistory, listModels, OllamaError } from '../lib/ollama.js';
 import { sendLongReply } from '../lib/reply.js';
 import {
   getMessages,
@@ -14,40 +14,29 @@ import { processAttachment, AttachmentError } from '../lib/attachment.js';
 
 export const data = new SlashCommandBuilder()
   .setName('chat')
-  .setDescription('AI とチャットする')
-  .addSubcommand((sub) =>
-    sub
-      .setName('send')
-      .setDescription('メッセージを送る（会話履歴あり）')
-      .addStringOption((option) =>
-        option
-          .setName('prompt')
-          .setDescription('送るメッセージ')
-          .setRequired(true)
-          .setMaxLength(2000)
-      )
-      .addAttachmentOption((option) =>
-        option
-          .setName('file')
-          .setDescription('画像またはテキストファイル（任意）')
-      )
+  .setDescription('AI とチャットする（会話履歴あり）')
+  .addStringOption((option) =>
+    option
+      .setName('prompt')
+      .setDescription('送るメッセージ')
+      .setRequired(true)
+      .setMaxLength(2000)
   )
-  .addSubcommand((sub) =>
-    sub
-      .setName('reset')
-      .setDescription('会話履歴をクリアする（モデル選択は維持）')
+  .addAttachmentOption((option) =>
+    option
+      .setName('file')
+      .setDescription('画像またはテキストファイル（任意）')
   )
-  .addSubcommand((sub) =>
-    sub
+  .addStringOption((option) =>
+    option
       .setName('model')
-      .setDescription('使用するモデルを切り替える')
-      .addStringOption((option) =>
-        option
-          .setName('name')
-          .setDescription('モデル名')
-          .setRequired(true)
-          .setAutocomplete(true)
-      )
+      .setDescription('使用するモデルを切り替える（省略で現在のモデルを維持）')
+      .setAutocomplete(true)
+  )
+  .addBooleanOption((option) =>
+    option
+      .setName('reset')
+      .setDescription('true にすると会話履歴をクリアしてから送信する')
   );
 
 export async function autocomplete(interaction: AutocompleteInteraction): Promise<void> {
@@ -68,24 +57,11 @@ export async function autocomplete(interaction: AutocompleteInteraction): Promis
 }
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-  const subcommand = interaction.options.getSubcommand();
-
-  switch (subcommand) {
-    case 'send':
-      return handleSend(interaction);
-    case 'reset':
-      return handleReset(interaction);
-    case 'model':
-      return handleModel(interaction);
-  }
-}
-
-// --- /chat send ---
-
-async function handleSend(interaction: ChatInputCommandInteraction): Promise<void> {
   const prompt = interaction.options.getString('prompt', true);
   const userId = interaction.user.id;
   const channelId = interaction.channelId;
+  const newModel = interaction.options.getString('model');
+  const shouldReset = interaction.options.getBoolean('reset') ?? false;
 
   if (!tryLockSession(channelId, userId)) {
     await interaction.reply({
@@ -98,6 +74,13 @@ async function handleSend(interaction: ChatInputCommandInteraction): Promise<voi
   await interaction.deferReply();
 
   try {
+    // model 指定時はモデル切り替え（内部で履歴リセット）
+    if (newModel) {
+      setUserModel(channelId, userId, newModel);
+    } else if (shouldReset) {
+      clearSession(channelId, userId);
+    }
+
     const attachment = interaction.options.getAttachment('file');
     let images: string[] | undefined;
     let effectivePrompt = prompt;
@@ -127,10 +110,7 @@ async function handleSend(interaction: ChatInputCommandInteraction): Promise<voi
 
     addMessage(channelId, userId, assistantMessage);
 
-    const turnCount = Math.ceil(getMessages(channelId, userId).length / 2);
-    const fileInfo = attachment ? ` | 添付: ${attachment.name}` : '';
-    const header = `**[${turnCount} ターン目 | モデル: ${model}${fileInfo}]**\n**あなた:** ${prompt}\n\n**AI:** `;
-    await sendLongReply(interaction, header, assistantMessage.content);
+    await sendLongReply(interaction, '', assistantMessage.content);
   } catch (err) {
     const errorMessage =
       err instanceof OllamaError || err instanceof AttachmentError
@@ -140,64 +120,5 @@ async function handleSend(interaction: ChatInputCommandInteraction): Promise<voi
     await interaction.editReply(`エラー: ${errorMessage}`);
   } finally {
     unlockSession(channelId, userId);
-  }
-}
-
-// --- /chat reset ---
-
-async function handleReset(interaction: ChatInputCommandInteraction): Promise<void> {
-  const userId = interaction.user.id;
-  const channelId = interaction.channelId;
-  const model = getUserModel(channelId, userId);
-
-  clearSession(channelId, userId);
-
-  await interaction.reply({
-    content: `会話履歴をクリアしました。新しいチャットを始めましょう！\n使用モデル: **${model}**`,
-    ephemeral: true,
-  });
-}
-
-// --- /chat model ---
-
-async function handleModel(interaction: ChatInputCommandInteraction): Promise<void> {
-  const newModel = interaction.options.getString('name', true).trim();
-  const userId = interaction.user.id;
-  const channelId = interaction.channelId;
-  const currentModel = getUserModel(channelId, userId);
-
-  if (newModel === currentModel || `${newModel}:latest` === currentModel) {
-    await interaction.reply({
-      content: `すでに **${currentModel}** を使用しています。`,
-      ephemeral: true,
-    });
-    return;
-  }
-
-  await interaction.deferReply({ ephemeral: true });
-
-  try {
-    const exists = await modelExists(newModel);
-    if (!exists) {
-      await interaction.editReply(
-        `モデル **${newModel}** が見つかりません。\n` +
-          `\`ollama pull ${newModel}\` でダウンロードしてから再度お試しください。\n` +
-          `利用可能なモデルは \`/bot models\` で確認できます。`
-      );
-      return;
-    }
-
-    setUserModel(channelId, userId, newModel);
-    await interaction.editReply(
-      `モデルを **${currentModel}** → **${newModel}** に変更しました。\n` +
-        `会話履歴もリセットされました。`
-    );
-  } catch (err) {
-    const errorMessage =
-      err instanceof OllamaError
-        ? err.message
-        : `予期しないエラーが発生しました: ${err instanceof Error ? err.message : String(err)}`;
-
-    await interaction.editReply(`エラー: ${errorMessage}`);
   }
 }

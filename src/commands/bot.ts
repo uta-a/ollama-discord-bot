@@ -141,7 +141,7 @@ async function handleModels(interaction: ChatInputCommandInteraction): Promise<v
 
     await interaction.editReply(
       `**利用可能なモデル (${response.models.length} 件)**\n\n${lines.join('\n')}\n\n` +
-        `モデルを変える場合は \`/chat model name:<モデル名>\` を使ってください。`
+        `モデルを変える場合は \`/chat prompt:<メッセージ> model:<モデル名>\` を使ってください。`
     );
   } catch (err) {
     const errorMessage =
