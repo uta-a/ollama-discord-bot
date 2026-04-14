@@ -1,6 +1,6 @@
-# Discord Bot (Ollama + Qwen3-TTS)
+# Discord Bot (Ollama + VOICEVOX)
 
-ローカルの [Ollama](https://ollama.com/) で動作する LLM と、[Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) による音声読み上げ機能を Discord のスラッシュコマンドで利用できる Bot。
+ローカルの [Ollama](https://ollama.com/) で動作する LLM と、[VOICEVOX](https://voicevox.hiroshiba.jp/) による音声読み上げ機能を Discord のスラッシュコマンドで利用できる Bot。
 
 ## 機能
 
@@ -21,15 +21,20 @@
 | `/chat prompt:<テキスト> model:<モデル名>` | モデルを切り替えて送る（履歴はリセット） |
 | `/chat prompt:<テキスト> reset:True` | 履歴をクリアして送る |
 
-### /voice — ボイスチャンネル・TTS
+### /voice — ボイスチャンネル
 
 | コマンド | 説明 |
 |---------|------|
 | `/voice join` | Bot をボイスチャンネルに参加させる |
 | `/voice leave` | Bot をボイスチャンネルから退出させる |
-| `/voice speak prompt:<テキスト>` | テキストを音声に変換して読み上げる |
-| `/voice profile name:<名前>` | ボイスプロファイルを切り替える |
-| `/voice profiles` | 利用可能なボイスプロファイル一覧を表示 |
+
+### /voicevox — VOICEVOX 読み上げ
+
+| コマンド | 説明 |
+|---------|------|
+| `/voicevox text:<テキスト>` | テキストを音声に変換してボイスチャンネルで読み上げる |
+
+コマンド実行後、キャラクター選択メニューが表示される（冥鳴ひまり / ずんだもん）。
 
 ### /bot — 管理・設定
 
@@ -38,16 +43,14 @@
 | `/bot status` | Bot の状態を表示 |
 | `/bot models` | 利用可能な AI モデル一覧を表示 |
 | `/bot ollama action:<start/stop>` | Ollama サーバーを起動・停止 |
-| `/bot tts-server action:<start/stop/status>` | TTS サーバーを操作 |
 | `/bot config key:<項目> value:<値>` | サーバー設定を確認・変更 |
 
 ### その他の特徴
 
-- 同時実行制御（LLM: デフォルト 2 件・即時拒否。TTS: デフォルト 1 件・30 秒待機）
+- 同時実行制御（LLM: デフォルト 2 件・即時拒否。VOICEVOX: デフォルト 1 件・30 秒待機）
 - 2000 文字を超えるレスポンスは `.txt` ファイルとして添付
 - 会話セッションは 30 分で自動期限切れ
 - VC 接続後 5 分無操作で自動退出
-- TTS はゼロショットボイスクローン（3 秒の参照音声で声を模倣）
 
 ## セットアップ
 
@@ -56,7 +59,7 @@
 - Node.js 16.11 以上
 - [Ollama](https://ollama.com/) がインストール済みであること
 - Discord Developer アカウント
-- ffmpeg（TTS 使用時に必要）
+- ffmpeg（VC 音声再生に必要）
   ```bash
   brew install ffmpeg   # macOS
   apt install ffmpeg    # Ubuntu/Debian
@@ -110,14 +113,10 @@ MAX_CONCURRENT=2
 MAX_HISTORY_LENGTH=20
 SESSION_TIMEOUT_MS=1800000
 
-# TTS（VC 機能を使う場合）
-TTS_SERVER_HOST=http://127.0.0.1:8880
-TTS_START_CMD=cd /path/to/discord-bot/tts-server/Qwen3-TTS-Openai-Fastapi && .venv/bin/uvicorn main:app --host 0.0.0.0 --port 8880
-TTS_PROFILES_DIR=./tts-server/profiles
-DEFAULT_VOICE_PROFILE=
-TTS_TIMEOUT_MS=60000
-TTS_MAX_CONCURRENT=1
-TTS_SEMAPHORE_WAIT_MS=30000
+# VOICEVOX（VC 機能を使う場合、省略可）
+VOICEVOX_HOST=http://127.0.0.1:50021
+VOICEVOX_TIMEOUT_MS=60000
+VOICEVOX_MAX_CONCURRENT=1
 VOICE_IDLE_TIMEOUT_MS=300000
 ```
 
@@ -135,16 +134,26 @@ Discord にスラッシュコマンドを登録する（初回・コマンド変
 npm run deploy-commands
 ```
 
-### 7. TTS サーバーのセットアップ（任意）
+### 7. VOICEVOX エンジンの準備（任意）
 
-VC 音声読み上げ機能を使う場合のみ:
+VC 音声読み上げ（`/voicevox`）を使う場合のみ必要。
+
+**公式デスクトップアプリ（推奨）:**
+
+1. [VOICEVOX 公式サイト](https://voicevox.hiroshiba.jp/) からアプリをダウンロード・インストール
+2. アプリを起動する（デフォルトで `http://127.0.0.1:50021` を待ち受ける）
+
+**Docker を使う場合:**
 
 ```bash
-cd tts-server
-bash setup.sh
+docker run --rm -p 50021:50021 voicevox/voicevox_engine:cpu-ubuntu20.04-latest
 ```
 
-詳細は [tts-server/README.md](./tts-server/README.md) を参照。
+起動確認:
+
+```bash
+curl http://127.0.0.1:50021/speakers | head -c 100
+```
 
 ## 起動
 
@@ -170,29 +179,6 @@ npm start       # ビルド済みファイルを実行
 | `npm start` | ビルド済みファイルで Bot を起動 |
 | `npm run deploy-commands` | Discord にスラッシュコマンドを登録 |
 
-## ボイスプロファイルの追加
-
-TTS でゼロショットボイスクローンを使うには、参照音声ファイルを配置する:
-
-```
-tts-server/profiles/<名前>/
-├── meta.json       # プロファイルメタデータ
-└── reference.wav   # 3〜10 秒の参照音声（クリアな発話）
-```
-
-`meta.json` の例:
-```json
-{
-  "name": "表示名",
-  "profile_id": "yourname",
-  "ref_audio_filename": "reference.wav",
-  "ref_text": "参照音声の内容（正確に書くほど品質が上がる）",
-  "language": "ja"
-}
-```
-
-プロファイル追加後、`/voice profiles` で一覧を確認し `/voice profile name:<名前>` で選択する。
-
 ## トラブルシューティング
 
 **「Ollama に接続できません」と表示される**
@@ -206,13 +192,9 @@ ollama serve
 ollama pull gemma4:e2b
 ```
 
-**TTS サーバーに接続できない**
-```bash
-# Discord から
-/bot tts-server action:start
-# または手動で
-cd tts-server/Qwen3-TTS-Openai-Fastapi && .venv/bin/uvicorn main:app --port 8880
-```
+**「VOICEVOX エンジンに接続できません」と表示される**
+- VOICEVOX デスクトップアプリを起動する
+- または `curl http://127.0.0.1:50021/speakers` で疎通確認する
 
 **音声が再生されない**
 - ffmpeg がインストールされているか確認: `which ffmpeg`
@@ -233,12 +215,7 @@ cd tts-server/Qwen3-TTS-Openai-Fastapi && .venv/bin/uvicorn main:app --port 8880
 | `MAX_CONCURRENT` | — | `2` | 同時処理可能な LLM リクエスト数 |
 | `MAX_HISTORY_LENGTH` | — | `20` | 会話履歴の最大メッセージ数 |
 | `SESSION_TIMEOUT_MS` | — | `1800000` | 会話セッションの有効期限（ms、30 分）|
-| `TTS_SERVER_HOST` | — | `http://127.0.0.1:8880` | TTS サーバー URL |
-| `TTS_START_CMD` | — | — | TTS サーバー起動コマンド |
-| `TTS_STOP_CMD` | — | — | TTS サーバー停止コマンド（省略可）|
-| `TTS_PROFILES_DIR` | — | `./tts-server/profiles` | ボイスプロファイルのディレクトリ |
-| `DEFAULT_VOICE_PROFILE` | — | — | デフォルトボイスプロファイル名 |
-| `TTS_TIMEOUT_MS` | — | `60000` | TTS API タイムアウト（ms）|
-| `TTS_MAX_CONCURRENT` | — | `1` | TTS 同時生成リクエスト数上限 |
-| `TTS_SEMAPHORE_WAIT_MS` | — | `30000` | TTS セマフォ待機タイムアウト（ms）|
+| `VOICEVOX_HOST` | — | `http://127.0.0.1:50021` | VOICEVOX エンジンの URL |
+| `VOICEVOX_TIMEOUT_MS` | — | `60000` | VOICEVOX API タイムアウト（ms）|
+| `VOICEVOX_MAX_CONCURRENT` | — | `1` | VOICEVOX 同時生成リクエスト数上限 |
 | `VOICE_IDLE_TIMEOUT_MS` | — | `300000` | VC アイドル自動退出（ms、5 分）|

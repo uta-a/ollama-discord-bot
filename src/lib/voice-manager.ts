@@ -10,8 +10,6 @@ import {
 } from '@discordjs/voice';
 import { Readable } from 'node:stream';
 
-const IDLE_TIMEOUT_MS = Number(process.env.VOICE_IDLE_TIMEOUT_MS) || 300_000; // 5分
-
 interface QueueItem {
   buffer: Buffer;
   resolve: () => void;
@@ -22,7 +20,6 @@ interface GuildVoiceState {
   connection: VoiceConnection;
   player: AudioPlayer;
   channelId: string;
-  idleTimer: NodeJS.Timeout | null;
   queue: QueueItem[];
   isPlaying: boolean;
 }
@@ -42,7 +39,6 @@ export function joinChannel(
   // 既存の接続があれば破棄
   const existing = guildStates.get(guildId);
   if (existing) {
-    clearIdleTimer(guildId);
     existing.connection.destroy();
     guildStates.delete(guildId);
   }
@@ -60,7 +56,6 @@ export function joinChannel(
     connection,
     player,
     channelId,
-    idleTimer: null,
     queue: [],
     isPlaying: false,
   };
@@ -76,9 +71,6 @@ export function joinChannel(
     const next = s.queue.shift();
     if (next) {
       playBuffer(guildId, s, next);
-    } else {
-      // キューが空になったらアイドルタイマーを開始
-      startIdleTimer(guildId);
     }
   });
 
@@ -86,7 +78,6 @@ export function joinChannel(
     const s = guildStates.get(guildId);
     if (!s) return;
 
-    // エラー時はキューの先頭アイテムを reject して次へ
     s.isPlaying = false;
     const current = s.queue.shift();
     if (current) current.reject(err);
@@ -96,9 +87,6 @@ export function joinChannel(
       playBuffer(guildId, s, next);
     }
   });
-
-  // アイドルタイマーを開始
-  startIdleTimer(guildId);
 }
 
 /**
@@ -108,8 +96,6 @@ export function joinChannel(
 export function leaveChannel(guildId: string): boolean {
   const state = guildStates.get(guildId);
   if (!state) return false;
-
-  clearIdleTimer(guildId);
 
   // キューに残ったアイテムをすべて reject
   for (const item of state.queue) {
@@ -142,31 +128,26 @@ export function playAudio(guildId: string, buffer: Buffer): Promise<void> {
     return Promise.reject(new Error('ボイスチャンネルに接続していません。'));
   }
 
-  // アイドルタイマーをキャンセル（新しい音声が来た）
-  clearIdleTimer(guildId);
-
   return new Promise<void>((resolve, reject) => {
     const item: QueueItem = { buffer, resolve, reject };
 
     if (state.isPlaying) {
-      // 再生中なのでキューに追加
       state.queue.push(item);
     } else {
-      // 即座に再生開始
       playBuffer(guildId, state, item);
     }
   });
 }
 
 /**
- * Bot がギルドのVCに接続しているか確認する。
+ * Bot がギルドの VC に接続しているか確認する。
  */
 export function isConnected(guildId: string): boolean {
   return guildStates.has(guildId);
 }
 
 /**
- * Bot が接続中のチャンネルIDを返す。
+ * Bot が接続中のチャンネル ID を返す。
  */
 export function getConnectedChannelId(guildId: string): string | null {
   return guildStates.get(guildId)?.channelId ?? null;
@@ -184,26 +165,5 @@ function playBuffer(guildId: string, state: GuildVoiceState, item: QueueItem): v
   } catch (err) {
     state.isPlaying = false;
     item.reject(err instanceof Error ? err : new Error(String(err)));
-  }
-}
-
-function startIdleTimer(guildId: string): void {
-  const state = guildStates.get(guildId);
-  if (!state) return;
-
-  clearIdleTimer(guildId);
-  state.idleTimer = setTimeout(() => {
-    leaveChannel(guildId);
-    console.log(`VC: ギルド ${guildId} からアイドルタイムアウトで退出しました。`);
-  }, IDLE_TIMEOUT_MS);
-  // Bot プロセスの終了を妨げない
-  state.idleTimer.unref();
-}
-
-function clearIdleTimer(guildId: string): void {
-  const state = guildStates.get(guildId);
-  if (state?.idleTimer) {
-    clearTimeout(state.idleTimer);
-    state.idleTimer = null;
   }
 }

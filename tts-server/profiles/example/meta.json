@@ -1,7 +1,0 @@
-{
-  "name": "Example Voice",
-  "profile_id": "example",
-  "ref_audio_filename": "reference.wav",
-  "ref_text": "こんにちは。これはサンプルのボイスプロファイルです。",
-  "language": "ja"
-}

@@ -4,7 +4,6 @@ import { checkModelAvailable } from './lib/ollama.js';
 import { loadCommands } from './lib/load-commands.js';
 import { startCleanupTimer } from './lib/conversation.js';
 import { startOllama } from './lib/ollama-process.js';
-import { isTtsServerRunning } from './lib/tts-process.js';
 import { leaveAllChannels } from './lib/voice-manager.js';
 import type { Command } from './lib/types.js';
 
@@ -63,13 +62,6 @@ client.once(Events.ClientReady, async (readyClient) => {
     console.warn('Bot は起動しますが、/gemma4 コマンドは正常に動作しない可能性があります。');
   }
 
-  // TTS サーバーヘルスチェック（自動起動はしない）
-  const ttsRunning = await isTtsServerRunning();
-  if (ttsRunning) {
-    console.log('TTS: サーバーは起動しています。');
-  } else {
-    console.warn('警告: TTS サーバーが起動していません。/tts-server start で起動してください。');
-  }
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

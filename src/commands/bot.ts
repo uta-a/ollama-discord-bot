@@ -2,7 +2,6 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { getOllamaStatus, listModels, OllamaError } from '../lib/ollama.js';
 import { getSessionCount, getUserModel } from '../lib/conversation.js';
 import { startOllama, stopOllama } from '../lib/ollama-process.js';
-import { startTtsServer, stopTtsServer, isTtsServerRunning } from '../lib/tts-process.js';
 import { isConnected } from '../lib/voice-manager.js';
 import {
   getGuildConfig,
@@ -37,22 +36,6 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand((sub) =>
     sub
-      .setName('tts-server')
-      .setDescription('TTS サーバーを操作する')
-      .addStringOption((option) =>
-        option
-          .setName('action')
-          .setDescription('実行するアクション')
-          .setRequired(true)
-          .addChoices(
-            { name: 'start — サーバーを起動', value: 'start' },
-            { name: 'stop — サーバーを停止', value: 'stop' },
-            { name: 'status — 状態を確認', value: 'status' }
-          )
-      )
-  )
-  .addSubcommand((sub) =>
-    sub
       .setName('config')
       .setDescription('サーバー設定を確認・変更する')
       .addStringOption((option) =>
@@ -60,7 +43,7 @@ export const data = new SlashCommandBuilder()
           .setName('key')
           .setDescription('設定項目')
           .setRequired(true)
-          .addChoices({ name: 'tts — 読み上げ有効/無効', value: 'tts' })
+          .addChoices({ name: 'voicevox — VOICEVOX 読み上げ有効/無効', value: 'voicevox' })
       )
       .addStringOption((option) =>
         option
@@ -83,8 +66,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       return handleModels(interaction);
     case 'ollama':
       return handleOllama(interaction);
-    case 'tts-server':
-      return handleTtsServer(interaction);
     case 'config':
       return handleConfig(interaction);
   }
@@ -97,7 +78,6 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
 
   const { active, capacity, host, defaultModel } = getOllamaStatus();
   const sessionCount = getSessionCount();
-  const ttsRunning = await isTtsServerRunning();
   const vcConnected = isConnected(interaction.guildId!);
 
   const lines = [
@@ -109,8 +89,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction): Promise<v
     `デフォルトモデル: ${defaultModel}`,
     `Ollama ホスト: ${host}`,
     ``,
-    `**[TTS]**`,
-    `TTS サーバー: ${ttsRunning ? '起動中' : '停止中'}`,
+    `**[VC]**`,
     `VC 接続: ${vcConnected ? 'このサーバーに接続中' : '未接続'}`,
   ];
 
@@ -170,36 +149,6 @@ async function handleOllama(interaction: ChatInputCommandInteraction): Promise<v
       const stopped = await stopOllama();
       await interaction.editReply(
         stopped ? 'Ollama サーバーを停止しました。' : 'Ollama サーバーはすでに停止しています。'
-      );
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await interaction.editReply(`エラー: ${message}`);
-  }
-}
-
-// --- /bot tts-server ---
-
-async function handleTtsServer(interaction: ChatInputCommandInteraction): Promise<void> {
-  const action = interaction.options.getString('action', true) as 'start' | 'stop' | 'status';
-
-  await interaction.deferReply({ ephemeral: true });
-
-  try {
-    if (action === 'start') {
-      const started = await startTtsServer();
-      await interaction.editReply(
-        started ? 'TTS サーバーを起動しました。' : 'TTS サーバーはすでに起動しています。'
-      );
-    } else if (action === 'stop') {
-      const stopped = await stopTtsServer();
-      await interaction.editReply(
-        stopped ? 'TTS サーバーを停止しました。' : 'TTS サーバーはすでに停止しています。'
-      );
-    } else {
-      const running = await isTtsServerRunning();
-      await interaction.editReply(
-        running ? 'TTS サーバーは起動しています。' : 'TTS サーバーは停止しています。'
       );
     }
   } catch (err) {

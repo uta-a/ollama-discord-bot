@@ -5,21 +5,21 @@
  * 1. GuildConfig インターフェースにプロパティ追加
  * 2. DEFAULT_CONFIG にデフォルト値追加
  * 3. CONFIG_LABELS に表示名追加
- * 4. src/commands/config.ts の addChoices に選択肢追加
+ * 4. src/commands/bot.ts の addChoices に選択肢追加
  * 5. 該当コマンドにガードチェック追加
  */
 
 export interface GuildConfig {
-  tts: boolean; // TTS 有効/無効（デフォルト: true）
+  voicevox: boolean;  // VOICEVOX 読み上げ有効/無効（デフォルト: true）
 }
 
 const DEFAULT_CONFIG: Readonly<GuildConfig> = {
-  tts: true,
+  voicevox: true,
 };
 
-/** 設定キーの表示名（/config の一覧表示に使用） */
+/** 設定キーの表示名（/bot config の一覧表示に使用） */
 export const CONFIG_LABELS: Record<keyof GuildConfig, string> = {
-  tts: '読み上げ (TTS)',
+  voicevox: 'VOICEVOX 読み上げ',
 };
 
 // Map<guildId, GuildConfig>
