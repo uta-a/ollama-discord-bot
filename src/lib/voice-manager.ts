@@ -27,6 +27,24 @@ interface GuildVoiceState {
 // Map<guildId, GuildVoiceState>
 const guildStates = new Map<string, GuildVoiceState>();
 
+type PlayStateCallback = (isPlaying: boolean) => void;
+let playStateCallback: PlayStateCallback | null = null;
+
+/**
+ * 再生状態が変化したときに呼ばれるコールバックを登録する。
+ * isPlaying=true: いずれかのギルドで再生中、false: 全ギルドで停止中。
+ */
+export function setPlayStateCallback(cb: PlayStateCallback): void {
+  playStateCallback = cb;
+}
+
+/** 全ギルドの再生状態を確認してコールバックを呼ぶ */
+function notifyPlayState(): void {
+  if (!playStateCallback) return;
+  const isPlaying = Array.from(guildStates.values()).some((s) => s.isPlaying);
+  playStateCallback(isPlaying);
+}
+
 /**
  * ボイスチャンネルに参加する。
  * すでに参加している場合は接続を移動する。
@@ -71,6 +89,8 @@ export function joinChannel(
     const next = s.queue.shift();
     if (next) {
       playBuffer(guildId, s, next);
+    } else {
+      notifyPlayState();
     }
   });
 
@@ -85,6 +105,8 @@ export function joinChannel(
     const next = s.queue.shift();
     if (next) {
       playBuffer(guildId, s, next);
+    } else {
+      notifyPlayState();
     }
   });
 }
@@ -158,12 +180,14 @@ export function getConnectedChannelId(guildId: string): string | null {
 function playBuffer(guildId: string, state: GuildVoiceState, item: QueueItem): void {
   try {
     state.isPlaying = true;
+    notifyPlayState();
     const stream = Readable.from(item.buffer);
     const resource = createAudioResource(stream, { inputType: StreamType.Arbitrary });
     state.player.play(resource);
     item.resolve();
   } catch (err) {
     state.isPlaying = false;
+    notifyPlayState();
     item.reject(err instanceof Error ? err : new Error(String(err)));
   }
 }

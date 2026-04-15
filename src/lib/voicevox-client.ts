@@ -155,3 +155,104 @@ export class VoicevoxError extends Error {
     this.name = 'VoicevoxError';
   }
 }
+
+// --- ユーザー辞書 API ---
+
+export interface DictEntry {
+  surface: string;       // 表記（読み上げ対象の語）
+  pronunciation: string; // 読み（カタカナ）
+  accentType: number;    // アクセント核位置（0 = 平板）
+}
+
+/**
+ * VOICEVOX ユーザー辞書に単語を登録する。
+ * POST /user_dict_word にクエリパラメータで送信する。
+ */
+export async function registerDictWord(entry: DictEntry): Promise<void> {
+  const params = new URLSearchParams({
+    surface: entry.surface,
+    pronunciation: entry.pronunciation,
+    accent_type: String(entry.accentType),
+    word_type: 'PROPER_NOUN',
+  });
+
+  try {
+    const response = await fetch(`${VOICEVOX_HOST}/user_dict_word?${params}`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new VoicevoxError(
+        `辞書への単語登録に失敗しました（HTTP ${response.status}）${detail ? `: ${detail}` : ''}`,
+        'SERVER_ERROR'
+      );
+    }
+  } catch (err) {
+    if (err instanceof VoicevoxError) throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('ECONNREFUSED') || message.includes('fetch failed')) {
+      throw new VoicevoxError(
+        `VOICEVOX エンジンに接続できません。エンジンを起動してください。\n(接続先: ${VOICEVOX_HOST})`,
+        'CONNECTION_REFUSED'
+      );
+    }
+    throw new VoicevoxError(`辞書登録中に予期しないエラーが発生しました: ${message}`, 'UNKNOWN');
+  }
+}
+
+/**
+ * VOICEVOX ユーザー辞書を全消去する。
+ * GET /user_dict で UUID 一覧を取得し、DELETE /user_dict_word/:uuid で個別削除する。
+ * （POST /import_user_dict?override=true に空オブジェクトを送っても実際にはクリアされないため）
+ */
+export async function clearVoicevoxDict(): Promise<void> {
+  try {
+    // 1. 現在の辞書エントリ一覧を取得
+    const listResponse = await fetch(`${VOICEVOX_HOST}/user_dict`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!listResponse.ok) {
+      const detail = await listResponse.text().catch(() => '');
+      throw new VoicevoxError(
+        `辞書の取得に失敗しました（HTTP ${listResponse.status}）${detail ? `: ${detail}` : ''}`,
+        'SERVER_ERROR'
+      );
+    }
+    const raw: unknown = await listResponse.json();
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      throw new VoicevoxError('GET /user_dict のレスポンス形式が不正です', 'SERVER_ERROR');
+    }
+    const uuids = Object.keys(raw as Record<string, unknown>);
+
+    // 2. 各エントリを個別削除。失敗した UUID を収集し、すべて試みた後にまとめて throw する
+    const failed: string[] = [];
+    for (const uuid of uuids) {
+      const delResponse = await fetch(
+        `${VOICEVOX_HOST}/user_dict_word/${encodeURIComponent(uuid)}`,
+        { method: 'DELETE', signal: AbortSignal.timeout(5_000) }
+      );
+      if (!delResponse.ok) {
+        failed.push(uuid);
+        console.warn(`辞書エントリ ${uuid} の削除に失敗しました（HTTP ${delResponse.status}）`);
+      }
+    }
+    if (failed.length > 0) {
+      // 呼び出し元（ensureVoicevoxDictLoaded）が activeGuildId をリセットして再同期を促せるよう throw する
+      throw new VoicevoxError(
+        `辞書の全消去に失敗しました（削除できなかったエントリ: ${failed.length} 件）`,
+        'SERVER_ERROR'
+      );
+    }
+  } catch (err) {
+    if (err instanceof VoicevoxError) throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('ECONNREFUSED') || message.includes('fetch failed')) {
+      throw new VoicevoxError(
+        `VOICEVOX エンジンに接続できません。エンジンを起動してください。\n(接続先: ${VOICEVOX_HOST})`,
+        'CONNECTION_REFUSED'
+      );
+    }
+    throw new VoicevoxError(`辞書クリア中に予期しないエラーが発生しました: ${message}`, 'UNKNOWN');
+  }
+}
