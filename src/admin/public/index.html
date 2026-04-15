@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discord Bot 管理画面</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: #1e1f22;
+      --surface: #2b2d31;
+      --surface2: #313338;
+      --border: #3f4147;
+      --text: #dbdee1;
+      --text-muted: #949ba4;
+      --accent: #5865f2;
+      --accent-hover: #4752c4;
+      --success: #23a559;
+      --error: #da373c;
+      --embed-border: #5865f2;
+      color-scheme: dark;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      margin: 0;
+      padding: 1rem;
+      line-height: 1.5;
+    }
+    h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .subtitle { color: var(--text-muted); margin: 0 0 1.5rem; }
+    .card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+    }
+    .row { display: flex; gap: 0.75rem; }
+    .col { flex: 1; min-width: 0; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+    select, textarea, input[type="text"], input[type="url"] {
+      width: 100%;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.5rem 0.625rem;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    select:focus, textarea:focus, input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    input[type="color"] {
+      width: 40px;
+      height: 32px;
+      padding: 2px 4px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface2);
+      cursor: pointer;
+    }
+    .color-row { display: flex; align-items: center; gap: 0.5rem; }
+    .color-row input[type="text"] { flex: 1; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.875rem;
+    }
+    .section-title { font-weight: 700; font-size: 1rem; color: #fff; margin: 0; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-sm { padding: 0.3rem 0.625rem; font-size: 12px; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+    .btn-danger { background: var(--error); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #c9363b; }
+    /* ファイル添付 */
+    .file-drop {
+      border: 2px dashed var(--border);
+      border-radius: 6px;
+      padding: 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .file-drop:hover, .file-drop.drag-over {
+      border-color: var(--accent);
+      background: rgba(88,101,242,.08);
+    }
+    .file-drop input { display: none; }
+    .file-drop-text { color: var(--text-muted); font-size: 13px; }
+    .file-list { margin-top: 0.5rem; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border-radius: 4px;
+      padding: 0.3rem 0.625rem;
+      margin-top: 0.25rem;
+      font-size: 13px;
+    }
+    .file-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item-size { color: var(--text-muted); margin-left: 0.5rem; white-space: nowrap; }
+    /* Embed */
+    .embed-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .embed-card {
+      border-left: 4px solid var(--embed-border);
+      background: var(--surface2);
+      border-radius: 0 6px 6px 0;
+      overflow: hidden;
+    }
+    .embed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.625rem 0.875rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .embed-header:hover { background: rgba(255,255,255,.04); }
+    .embed-title-label {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .embed-body { padding: 0.75rem 0.875rem 0.875rem; }
+    .embed-body.hidden { display: none; }
+    .form-group { margin-bottom: 0.75rem; }
+    .field-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+    .field-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem;
+    }
+    .field-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.4rem; }
+    .field-row input[type="checkbox"] { width: auto; cursor: pointer; }
+    .field-actions { display: flex; justify-content: flex-end; margin-top: 0.4rem; }
+    /* ステータス */
+    .status {
+      margin-top: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.success { background: rgba(35,165,89,.15); color: #23a559; border: 1px solid rgba(35,165,89,.3); }
+    .status.error { background: rgba(218,55,60,.15); color: #f27878; border: 1px solid rgba(218,55,60,.3); }
+    /* 区切り */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0.875rem 0; }
+    /* 送信エリア */
+    .send-area { display: flex; align-items: flex-start; gap: 0.75rem; margin-top: 1rem; }
+    .char-count { font-size: 12px; color: var(--text-muted); margin-top: 0.25rem; text-align: right; }
+    .char-count.warn { color: #faa81a; }
+    .char-count.error { color: var(--error); }
+  </style>
+</head>
+<body>
+  <h1>Discord Bot 管理画面</h1>
+  <p class="subtitle">参加中のサーバー・チャンネルへメッセージとファイルを送信します（認可なし・localhost 専用）</p>
+
+  <!-- 宛先 -->
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">宛先</h2>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="guild">サーバー</label>
+        <select id="guild"></select>
+      </div>
+      <div class="col">
+        <label for="channel">チャンネル</label>
+        <select id="channel"></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 本文 -->
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">本文</h2>
+    </div>
+    <label for="content">テキスト（空でも可。Embed かファイルがあれば送信できます）</label>
+    <textarea id="content" placeholder="メッセージ本文を入力..." maxlength="2000"></textarea>
+    <div class="char-count" id="charCount">0 / 2000</div>
+  </div>
+
+  <!-- Embed -->
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">Embed</h2>
+      <button class="btn btn-ghost btn-sm" id="addEmbed" type="button">＋ Embed を追加</button>
+    </div>
+    <div class="embed-list" id="embedList">
+      <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Embed はまだ追加されていません。</p>
+    </div>
+  </div>
+
+  <!-- ファイル -->
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">ファイル添付</h2>
+    </div>
+    <div class="file-drop" id="fileDrop">
+      <input type="file" id="files" multiple>
+      <div class="file-drop-text">
+        クリックしてファイルを選択、またはここにドロップ<br>
+        <span style="font-size:12px;">最大 10 個 / 1 ファイル 25MB まで</span>
+      </div>
+    </div>
+    <div class="file-list" id="fileList"></div>
+  </div>
+
+  <!-- 送信 -->
+  <div class="send-area">
+    <button class="btn btn-primary" id="sendBtn" type="button">送信する</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <script>
+    'use strict';
+
+    // ── ユーティリティ ──────────────────────────────────────────
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[c]);
+    }
+
+    function formatBytes(n) {
+      if (n < 1024) return n + ' B';
+      if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+      return (n / 1048576).toFixed(1) + ' MB';
+    }
+
+    function setStatus(kind, msg) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status show ' + kind;
+    }
+
+    async function apiFetch(url, opts) {
+      const res = await fetch(url, opts);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? 'Unknown error');
+      return json.data;
+    }
+
+    // ── 宛先 ────────────────────────────────────────────────────
+
+    async function loadGuilds() {
+      const guilds = await apiFetch('/api/guilds');
+      const sel = document.getElementById('guild');
+      sel.innerHTML = '';
+      if (guilds.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = '（参加中のサーバーがありません）';
+        sel.appendChild(opt);
+        return;
+      }
+      for (const g of guilds) {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = g.name;
+        sel.appendChild(opt);
+      }
+      await loadChannels(guilds[0].id);
+    }
+
+    async function loadChannels(guildId) {
+      const sel = document.getElementById('channel');
+      sel.innerHTML = '';
+      const channels = await apiFetch(`/api/guilds/${encodeURIComponent(guildId)}/channels`);
+      if (channels.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = '（送信可能なチャンネルがありません）';
+        sel.appendChild(opt);
+        return;
+      }
+      for (const c of channels) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        const prefix = c.parentName ? c.parentName + ' / ' : '';
+        const icon = c.type === 'announcement' ? '📣' : '#';
+        opt.textContent = prefix + icon + ' ' + c.name;
+        sel.appendChild(opt);
+      }
+    }
+
+    document.getElementById('guild').addEventListener('change', (e) => {
+      loadChannels(e.target.value).catch((err) => setStatus('error', '読み込み失敗: ' + err.message));
+    });
+
+    // ── 文字数カウント ───────────────────────────────────────────
+
+    const contentEl = document.getElementById('content');
+    contentEl.addEventListener('input', () => {
+      const n = contentEl.value.length;
+      const el = document.getElementById('charCount');
+      el.textContent = n + ' / 2000';
+      el.className = 'char-count' + (n > 1900 ? ' warn' : '') + (n > 2000 ? ' error' : '');
+    });
+
+    // ── ファイル ─────────────────────────────────────────────────
+
+    const selectedFiles = [];
+
+    function renderFileList() {
+      const list = document.getElementById('fileList');
+      list.innerHTML = '';
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const f = selectedFiles[i];
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'file-item-name';
+        nameSpan.textContent = f.name;
+        const sizeSpan = document.createElement('span');
+        sizeSpan.className = 'file-item-size';
+        sizeSpan.textContent = formatBytes(f.size);
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-ghost btn-sm';
+        removeBtn.textContent = '×';
+        removeBtn.style.marginLeft = '0.5rem';
+        removeBtn.addEventListener('click', () => {
+          selectedFiles.splice(i, 1);
+          renderFileList();
+        });
+        item.appendChild(nameSpan);
+        item.appendChild(sizeSpan);
+        item.appendChild(removeBtn);
+        list.appendChild(item);
+      }
+    }
+
+    function addFiles(filesList) {
+      for (const f of filesList) {
+        if (selectedFiles.length >= 10) {
+          setStatus('error', 'ファイルは最大 10 個までです。');
+          break;
+        }
+        if (f.size > 25 * 1024 * 1024) {
+          setStatus('error', `${f.name} は 25MB を超えています。`);
+          continue;
+        }
+        selectedFiles.push(f);
+      }
+      renderFileList();
+    }
+
+    const fileDrop = document.getElementById('fileDrop');
+    const filesInput = document.getElementById('files');
+
+    fileDrop.addEventListener('click', () => filesInput.click());
+    filesInput.addEventListener('change', () => {
+      addFiles(Array.from(filesInput.files));
+      filesInput.value = '';
+    });
+    fileDrop.addEventListener('dragover', (e) => { e.preventDefault(); fileDrop.classList.add('drag-over'); });
+    fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('drag-over'));
+    fileDrop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileDrop.classList.remove('drag-over');
+      addFiles(Array.from(e.dataTransfer.files));
+    });
+
+    // ── Embed ────────────────────────────────────────────────────
+
+    let embedCounter = 0;
+    const embedList = document.getElementById('embedList');
+    const addEmbedBtn = document.getElementById('addEmbed');
+
+    function makeEmbedCard(idx) {
+      const id = 'embed-' + idx;
+      const card = document.createElement('div');
+      card.className = 'embed-card';
+      card.dataset.embedIdx = String(idx);
+
+      // ヘッダー（折りたたみ）
+      const header = document.createElement('div');
+      header.className = 'embed-header';
+
+      const titleLabel = document.createElement('span');
+      titleLabel.className = 'embed-title-label';
+      titleLabel.textContent = 'Embed ' + (idx + 1);
+
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '0.375rem';
+
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'btn btn-ghost btn-sm';
+      toggleBtn.textContent = '▼';
+      toggleBtn.title = '折りたたむ / 展開する';
+      toggleBtn.type = 'button';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'btn btn-danger btn-sm';
+      removeBtn.textContent = '削除';
+      removeBtn.type = 'button';
+      removeBtn.addEventListener('click', () => {
+        card.remove();
+        updateEmbedPlaceholder();
+        renumberEmbeds();
+      });
+
+      actions.appendChild(toggleBtn);
+      actions.appendChild(removeBtn);
+      header.appendChild(titleLabel);
+      header.appendChild(actions);
+
+      // ボディ
+      const body = document.createElement('div');
+      body.className = 'embed-body';
+
+      body.innerHTML = `
+        <div class="form-group">
+          <label for="${id}-title">タイトル（最大256文字）</label>
+          <input type="text" id="${id}-title" placeholder="Embed のタイトル" maxlength="256">
+        </div>
+        <div class="form-group">
+          <label for="${id}-desc">説明（最大4096文字）</label>
+          <textarea id="${id}-desc" placeholder="本文・説明文" style="min-height:80px;" maxlength="4096"></textarea>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label>カラー</label>
+              <div class="color-row">
+                <input type="color" id="${id}-colorpicker" value="#5865f2">
+                <input type="text" id="${id}-color" placeholder="#5865f2" maxlength="7">
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="${id}-url">URL（タイトルのリンク先）</label>
+              <input type="url" id="${id}-url" placeholder="https://...">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label for="${id}-author">Author 名</label>
+              <input type="text" id="${id}-author" placeholder="Author 名" maxlength="256">
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="${id}-authorurl">Author URL</label>
+              <input type="url" id="${id}-authorurl" placeholder="https://...">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label for="${id}-footer">フッター</label>
+              <input type="text" id="${id}-footer" placeholder="フッターテキスト" maxlength="2048">
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="${id}-image">画像 URL</label>
+              <input type="url" id="${id}-image" placeholder="https://...">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label for="${id}-thumbnail">サムネイル URL</label>
+              <input type="url" id="${id}-thumbnail" placeholder="https://...">
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="${id}-timestamp">現在時刻を付ける</label>
+              <input type="checkbox" id="${id}-timestamp" style="width:auto;margin-top:6px;cursor:pointer;">
+            </div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+          <label style="margin:0;">Fields（最大25個）</label>
+          <button class="btn btn-ghost btn-sm add-field-btn" type="button">＋ Field を追加</button>
+        </div>
+        <div class="field-list" id="${id}-fields"></div>
+      `;
+
+      // カラーピッカーと hex input の同期
+      const picker = body.querySelector(`#${id}-colorpicker`);
+      const colorInput = body.querySelector(`#${id}-color`);
+      picker.addEventListener('input', () => { colorInput.value = picker.value; });
+      colorInput.addEventListener('input', () => {
+        const v = colorInput.value;
+        if (/^#?[0-9a-fA-F]{6}$/.test(v)) picker.value = v.startsWith('#') ? v : '#' + v;
+      });
+
+      // Field 追加
+      const addFieldBtn = body.querySelector('.add-field-btn');
+      const fieldList = body.querySelector(`#${id}-fields`);
+      addFieldBtn.addEventListener('click', () => {
+        const fieldCount = fieldList.children.length;
+        if (fieldCount >= 25) { setStatus('error', 'Field は最大 25 個です。'); return; }
+        const fid = `${id}-field-${fieldCount}`;
+        const fieldItem = document.createElement('div');
+        fieldItem.className = 'field-item';
+        fieldItem.innerHTML = `
+          <div class="row">
+            <div class="col">
+              <label>名前（最大256文字）</label>
+              <input type="text" id="${fid}-name" placeholder="Field 名" maxlength="256">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>値（最大1024文字）</label>
+            <textarea id="${fid}-value" placeholder="Field の値" style="min-height:60px;" maxlength="1024"></textarea>
+          </div>
+          <div class="field-row">
+            <input type="checkbox" id="${fid}-inline">
+            <label for="${fid}-inline" style="text-transform:none;font-size:13px;letter-spacing:0;color:var(--text);margin:0;">インライン表示</label>
+          </div>
+          <div class="field-actions">
+            <button class="btn btn-danger btn-sm remove-field-btn" type="button">削除</button>
+          </div>
+        `;
+        fieldItem.querySelector('.remove-field-btn').addEventListener('click', () => {
+          fieldItem.remove();
+        });
+        fieldList.appendChild(fieldItem);
+      });
+
+      // 折りたたみ
+      toggleBtn.addEventListener('click', () => {
+        body.classList.toggle('hidden');
+        toggleBtn.textContent = body.classList.contains('hidden') ? '▶' : '▼';
+      });
+
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
+    function updateEmbedPlaceholder() {
+      const cards = embedList.querySelectorAll('.embed-card');
+      const placeholder = embedList.querySelector('p');
+      if (cards.length === 0) {
+        if (!placeholder) {
+          const p = document.createElement('p');
+          p.style.cssText = 'color: var(--text-muted); font-size: 13px; margin: 0;';
+          p.textContent = 'Embed はまだ追加されていません。';
+          embedList.appendChild(p);
+        }
+      } else if (placeholder) {
+        placeholder.remove();
+      }
+    }
+
+    function renumberEmbeds() {
+      embedList.querySelectorAll('.embed-card').forEach((card, i) => {
+        const label = card.querySelector('.embed-title-label');
+        if (label) label.textContent = 'Embed ' + (i + 1);
+      });
+    }
+
+    addEmbedBtn.addEventListener('click', () => {
+      const count = embedList.querySelectorAll('.embed-card').length;
+      if (count >= 10) { setStatus('error', 'Embed は最大 10 個です。'); return; }
+      const card = makeEmbedCard(embedCounter++);
+      const placeholder = embedList.querySelector('p');
+      if (placeholder) placeholder.remove();
+      embedList.appendChild(card);
+    });
+
+    // ── Embed のデータ収集 ────────────────────────────────────────
+
+    function collectEmbeds() {
+      const embeds = [];
+      for (const card of embedList.querySelectorAll('.embed-card')) {
+        const idx = card.dataset.embedIdx;
+        const id = 'embed-' + idx;
+
+        const get = (suffix) => {
+          const el = card.querySelector(`#${id}-${suffix}`);
+          return el ? el.value.trim() : '';
+        };
+
+        const embed = {};
+        const title = get('title');
+        const desc = card.querySelector(`#${id}-desc`)?.value.trim() ?? '';
+        const color = get('color');
+        const url = get('url');
+        const author = get('author');
+        const authorUrl = get('authorurl');
+        const footer = get('footer');
+        const image = get('image');
+        const thumbnail = get('thumbnail');
+        const timestamp = card.querySelector(`#${id}-timestamp`)?.checked ?? false;
+
+        if (title) embed.title = title;
+        if (desc) embed.description = desc;
+        if (color) embed.color = color.startsWith('#') ? color : '#' + color;
+        if (url) embed.url = url;
+        if (author) embed.authorName = author;
+        if (authorUrl) embed.authorUrl = authorUrl;
+        if (footer) embed.footerText = footer;
+        if (image) embed.imageUrl = image;
+        if (thumbnail) embed.thumbnailUrl = thumbnail;
+        if (timestamp) embed.timestamp = true;
+
+        // Fields
+        const fields = [];
+        for (const fieldItem of card.querySelectorAll('.field-item')) {
+          const fName = fieldItem.querySelector('[id$="-name"]')?.value.trim() ?? '';
+          const fValue = fieldItem.querySelector('textarea')?.value.trim() ?? '';
+          const fInline = fieldItem.querySelector('[id$="-inline"]')?.checked ?? false;
+          if (fName && fValue) {
+            const field = { name: fName, value: fValue };
+            if (fInline) field.inline = true;
+            fields.push(field);
+          }
+        }
+        if (fields.length > 0) embed.fields = fields;
+
+        // 何も入力されていない Embed はスキップ
+        if (Object.keys(embed).length > 0) embeds.push(embed);
+      }
+      return embeds;
+    }
+
+    // ── 送信 ────────────────────────────────────────────────────
+
+    const sendBtn = document.getElementById('sendBtn');
+    sendBtn.addEventListener('click', async () => {
+      const channelId = document.getElementById('channel').value;
+      const content = document.getElementById('content').value;
+      const embeds = collectEmbeds();
+
+      if (!channelId) { setStatus('error', 'チャンネルが選択されていません。'); return; }
+      if (!content && embeds.length === 0 && selectedFiles.length === 0) {
+        setStatus('error', 'メッセージ、Embed、ファイルのいずれかを指定してください。');
+        return;
+      }
+
+      sendBtn.disabled = true;
+      setStatus('success', '送信中...');
+
+      try {
+        const fd = new FormData();
+        fd.append('channelId', channelId);
+        if (content) fd.append('content', content);
+        if (embeds.length > 0) fd.append('embeds', JSON.stringify(embeds));
+        for (const f of selectedFiles) fd.append('files', f, f.name);
+
+        const data = await apiFetch('/api/send', { method: 'POST', body: fd });
+        setStatus('success', `送信成功！ messageId: ${data.messageId}`);
+
+        // フォームリセット
+        document.getElementById('content').value = '';
+        document.getElementById('charCount').textContent = '0 / 2000';
+        selectedFiles.length = 0;
+        renderFileList();
+        embedList.innerHTML = '';
+        updateEmbedPlaceholder();
+      } catch (err) {
+        setStatus('error', '送信失敗: ' + (err.message ?? String(err)));
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    // ── 初期化 ──────────────────────────────────────────────────
+
+    loadGuilds().catch((err) => setStatus('error', '初期化に失敗しました: ' + err.message));
+  </script>
+</body>
+</html>

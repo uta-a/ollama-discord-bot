@@ -7,6 +7,7 @@ import {
   GatewayIntentBits,
   ChatInputCommandInteraction,
 } from 'discord.js';
+import { startAdminServer, stopAdminServer } from './admin/server.js';
 import { checkModelAvailable } from './lib/ollama.js';
 import { loadCommands } from './lib/load-commands.js';
 import { startCleanupTimer } from './lib/conversation.js';
@@ -93,6 +94,9 @@ client.once(Events.ClientReady, async (readyClient) => {
     console.warn(`警告: Ollama のヘルスチェックに失敗しました。\n${message}`);
     console.warn('Bot は起動しますが、/gemma4 コマンドは正常に動作しない可能性があります。');
   }
+
+  // 管理画面サーバーを起動（ADMIN_PANEL_PORT が設定されている場合のみ）
+  await startAdminServer(readyClient);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -222,9 +226,14 @@ client.on(Events.MessageCreate, async (message) => {
   }
 });
 
-// Graceful shutdown: VC接続を切断してから終了する
-const shutdown = () => {
+// Graceful shutdown: 管理画面・VC接続を切断してから終了する
+const shutdown = async () => {
   console.log('シャットダウン中...');
+  try {
+    await stopAdminServer();
+  } catch (err) {
+    console.warn('管理画面の停止中にエラーが発生しました:', err);
+  }
   leaveAllChannels();
   client.destroy();
   process.exit(0);

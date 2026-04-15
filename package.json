@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/admin/public dist/admin/public",
     "start": "node dist/index.js",
-    "deploy-commands": "tsx src/deploy-commands.ts"
+    "deploy-commands": "tsx src/deploy-commands.ts",
+    "admin": "tsx src/admin-cli.ts"
   },
   "keywords": [],
   "author": "",
@@ -15,9 +16,13 @@
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.19.2",
+    "@fastify/multipart": "^10.0.0",
+    "@inquirer/prompts": "^8.4.1",
     "discord.js": "^14.26.2",
     "dotenv": "^17.4.1",
-    "ollama": "^0.6.3"
+    "fastify": "^5.8.5",
+    "ollama": "^0.6.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",

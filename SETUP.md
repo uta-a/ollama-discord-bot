@@ -15,7 +15,9 @@
 7. [VOICEVOX エンジンの準備（任意）](#7-voicevox-エンジンの準備任意)
 8. [Bot の起動](#8-bot-の起動)
 9. [動作確認](#9-動作確認)
-10. [コマンドリファレンス](#コマンドリファレンス)
+10. [管理画面の使い方](#9-管理画面の使い方)
+11. [動作確認](#10-動作確認)
+12. [コマンドリファレンス](#コマンドリファレンス)
 
 ---
 
@@ -122,6 +124,9 @@ OLLAMA_MODEL=gemma4
 MAX_CONCURRENT=2
 MAX_HISTORY_LENGTH=20
 SESSION_TIMEOUT_MS=1800000
+
+# 管理画面 Web UI（省略可）
+ADMIN_PANEL_PORT=3001   # 設定すると http://127.0.0.1:3001 で管理画面が開く
 ```
 
 ### VOICEVOX も使う場合（上記に追加）
@@ -219,7 +224,80 @@ npm start
 
 ---
 
-## 9. 動作確認
+## 9. 管理画面の使い方
+
+### Web 管理画面
+
+`.env` に `ADMIN_PANEL_PORT=3001` を設定して Bot を起動（`npm run dev` または `npm start`）。
+
+```
+管理画面: http://127.0.0.1:3001 で待機中（認可なし・localhost 専用）。
+```
+
+上記のログが出たらブラウザで `http://127.0.0.1:3001` を開く。
+
+**送信手順:**
+1. 「サーバー」で宛先のサーバーを選択
+2. 「チャンネル」で宛先のチャンネルを選択（Bot が `SendMessages` 権限を持つチャンネルのみ表示）
+3. 本文テキストを入力（空でも可。Embed かファイルがあれば送信できる）
+4. 「Embed を追加」で整形されたメッセージを作成（タイトル・説明・カラーなど）
+5. ファイルを選択・ドロップ（最大 10 個 / 1 個 25MB）
+6. 「送信する」をクリック
+
+**セキュリティ前提:** 認可なし・`127.0.0.1` 固定バインド。ブラウザを開けるのはこの PC のローカルユーザーのみ。
+
+### CLI（管理コマンド）
+
+Bot 本体が起動していなくても使える。
+
+**対話モード（サーバー・チャンネルを対話形式で選択）:**
+```bash
+npm run admin
+```
+
+**非対話モード:**
+```bash
+# テキストのみ
+npm run admin -- --channel <channelId> --content "お知らせです"
+
+# ファイル添付
+npm run admin -- --channel <channelId> --file ./log.txt --file ./screenshot.png
+
+# Embed 付き
+npm run admin -- --channel <channelId> \
+  --content "定期お知らせ" \
+  --embed '{"title":"タイトル","description":"説明文","color":"#5865f2"}'
+```
+
+**JSON ファイルモード（スクリプト・自動化向け）:**
+```bash
+npm run admin -- --json ./payload.json
+```
+
+`payload.json` の例:
+```json
+{
+  "channelId": "1234567890123456789",
+  "content": "定期レポート",
+  "embeds": [
+    {
+      "title": "今週のまとめ",
+      "description": "詳細はこちら",
+      "color": "#23a559",
+      "fields": [
+        { "name": "件数", "value": "42", "inline": true }
+      ]
+    }
+  ],
+  "files": ["./report.pdf"]
+}
+```
+
+> **注意:** Bot 本体が起動中のときに `npm run admin` を実行すると、同じトークンで 2 つの接続が競合し、先に起動していた側が切断されます。Bot 稼働中は Web 管理画面を使ってください。
+
+---
+
+## 10. 動作確認
 
 ### LLM チャット
 

@@ -64,6 +64,45 @@
 
 `/help` を実行するとカテゴリ別のコマンド一覧が表示されます（自分だけに見える ephemeral 応答）。
 
+## 管理画面（Web UI + CLI）
+
+Bot と同じ PC から、2 つの方法でサーバー・チャンネルに直接メッセージを送信できます。
+
+### Web 管理画面
+
+`.env` に `ADMIN_PANEL_PORT=3001` を追加して Bot を起動すると、ブラウザで管理画面を開けます。
+
+```
+http://127.0.0.1:3001
+```
+
+できること:
+- 参加中のサーバー・チャンネルをドロップダウンで選択
+- テキスト本文の送信
+- ファイルの添付（最大 10 個 / 1 個 25MB）
+- Embed の作成（タイトル・説明・カラー・フィールドなど。最大 10 個）
+
+> 認可なし・`127.0.0.1` バインド固定。ブラウザを開けるのはローカルユーザーのみ。
+
+### CLI（`npm run admin`）
+
+Bot 本体が起動していない状態でも、CLI 単体で送信できます。
+
+```bash
+# 対話モード（サーバー・チャンネルを対話形式で選択）
+npm run admin
+
+# 非対話モード
+npm run admin -- --channel <channelId> --content "hello"
+npm run admin -- --channel <channelId> --file ./log.txt
+npm run admin -- --channel <channelId> --embed '{"title":"お知らせ","description":"内容","color":"#5865f2"}'
+
+# JSON ファイルから送信（自動化・スクリプト向け）
+npm run admin -- --json ./payload.json
+```
+
+> Bot 本体が起動中のときに CLI を同時に使うと、同じトークンで接続が競合します。Bot が稼働している場合は Web 管理画面を使ってください。
+
 ## DM・ユーザーアプリとして使う
 
 `/ask` `/chat` `/help` はユーザーアプリとしてアカウントにインストールすると、Bot が参加していないサーバーや**ユーザー間 DM** でも使えます。
