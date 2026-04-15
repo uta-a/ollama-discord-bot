@@ -55,7 +55,9 @@ ollama --version
 
 1. 左メニューの **Bot** → **Reset Token** → トークンをコピー（`DISCORD_TOKEN`）
    - トークンは一度しか表示されないので必ず保存する
-2. 左メニューの **OAuth2** → **Client ID** をコピー（`CLIENT_ID`）
+2. 同じ **Bot** ページの **Privileged Gateway Intents** セクションで **MESSAGE CONTENT INTENT** を ON にして保存する
+   - これを有効にしないと自動読み上げ（`/voicevox auto`）が動作しない
+3. 左メニューの **OAuth2** → **Client ID** をコピー（`CLIENT_ID`）
 
 ### 2-3. Bot 権限の設定
 
@@ -119,7 +121,6 @@ SESSION_TIMEOUT_MS=1800000
 VOICEVOX_HOST=http://127.0.0.1:50021
 VOICEVOX_TIMEOUT_MS=60000
 VOICEVOX_MAX_CONCURRENT=1
-VOICE_IDLE_TIMEOUT_MS=300000
 ```
 
 ---
@@ -221,18 +222,40 @@ Bot から返答があれば正常。
 
 ### VOICEVOX 読み上げ
 
+**単発読み上げ:**
+
 1. VOICEVOX エンジンを起動する
 2. ボイスチャンネルに入る
-3. `/voice join` で Bot を招待
-4. 読み上げを実行:
+3. 読み上げを実行（未接続なら Bot が自動参加）:
    ```
-   /voicevox text:こんにちは
+   /voicevox say text:こんにちは speaker:zundamon
    ```
-5. キャラクター選択メニューで声を選ぶ（冥鳴ひまり / ずんだもん）
-6. 音声が再生されれば正常
-7. 退出:
+4. 音声が再生されれば正常
+
+**自動読み上げモード（個人）:**
+
+1. プロファイルを設定して自動読み上げを ON にする:
    ```
-   /voice leave
+   /voicevox auto speaker:zundamon
+   ```
+2. 以降、そのチャンネルで `/` なしで送信したメッセージが自動で読み上げられる
+3. 停止するには:
+   ```
+   /voicevox stop
+   ```
+
+**全員読み上げモード:**
+
+1. チャンネル全員の読み上げを ON にする（フォールバック声を指定）:
+   ```
+   /voicevox auto-all speaker:zundamon
+   ```
+2. 以降、そのチャンネルの全員のメッセージが読み上げられる
+   - プロファイル登録済みのユーザーはそれぞれの登録声を使用
+   - 未登録ユーザーはフォールバック声（上記で指定）を使用
+3. 停止するには:
+   ```
+   /voicevox stop-all
    ```
 
 ---
@@ -289,11 +312,45 @@ Discord のチャット欄にそのまま貼り付けて使えるコマンド一
 ### /voicevox — VOICEVOX 読み上げ
 
 ```
-/voicevox text:こんにちは
+/voicevox say text:こんにちは speaker:zundamon
 ```
 ```
-/voicevox text:今日も良い天気ですね
+/voicevox auto speaker:zundamon
 ```
+```
+/voicevox stop
+```
+```
+/voicevox auto-all speaker:zundamon
+```
+```
+/voicevox stop-all
+```
+```
+/voicevox profile speaker:metan
+```
+
+---
+
+### /voicevox dict — 読み上げ辞書
+
+```
+/voicevox dict add surface:ずんだもん pronunciation:ズンダモン
+```
+```
+/voicevox dict add surface:Claude pronunciation:クロード accent_type:1
+```
+```
+/voicevox dict list
+```
+```
+/voicevox dict remove surface:ずんだもん
+```
+
+- `pronunciation` はカタカナで入力する（長音符 `ー` 可）
+- `accent_type` は省略すると `0`（平板）になる
+- 辞書はサーバーごとに保存され Bot 再起動後も維持される
+- 同じ `surface` を再度 `add` すると上書きされる
 
 ---
 

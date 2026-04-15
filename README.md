@@ -32,9 +32,24 @@
 
 | コマンド | 説明 |
 |---------|------|
-| `/voicevox text:<テキスト>` | テキストを音声に変換してボイスチャンネルで読み上げる |
+| `/voicevox say text:<テキスト>` | テキストを一回だけ読み上げる |
+| `/voicevox say text:<テキスト> speaker:<キャラ> style:<スタイル>` | キャラクター・スタイルを指定して読み上げ |
+| `/voicevox auto speaker:<キャラ>` | 自分の自動読み上げを ON にする（以降 `/` なしのメッセージを読み上げ） |
+| `/voicevox stop` | 自分の自動読み上げを OFF にする |
+| `/voicevox auto-all speaker:<キャラ>` | チャンネル全員の自動読み上げを ON にする |
+| `/voicevox stop-all` | チャンネル全員の自動読み上げを OFF にする |
+| `/voicevox profile speaker:<キャラ>` | デフォルトの声を設定する（プロファイル保存） |
+| `/voicevox dict add surface:<表記> pronunciation:<読み>` | 読み上げ辞書に単語を追加する |
+| `/voicevox dict list` | 登録済みの辞書単語一覧を表示する |
+| `/voicevox dict remove surface:<表記>` | 辞書から単語を削除する |
 
-コマンド実行後、キャラクター選択メニューが表示される（冥鳴ひまり / ずんだもん）。
+**個人モード（auto）**: `/voicevox auto` を実行すると、そのチャンネルで自分が送信したメッセージ（`/` なし）が自動的に読み上げられる。`/voicevox stop` で停止。
+
+**全員モード（auto-all）**: `/voicevox auto-all` を実行すると、そのチャンネルの全員の発言が読み上げられる。声はプロファイル登録済みのユーザーはそれぞれの声、未登録のユーザーはコマンドで指定したフォールバック声を使う。`/voicevox stop-all` で停止。
+
+プロファイルは JSON ファイルに保存されるため、Bot 再起動後も `/voicevox say` でデフォルト話者として使われる。
+
+**辞書機能（dict）**: `/voicevox dict add` で読み仮名を登録すると、以降の読み上げに反映される。辞書はサーバーごとに独立して JSON ファイルに保存される。VOICEVOX インスタンスは単一の辞書しか持てないため、`VOICEVOX_MAX_CONCURRENT=1`（デフォルト）の環境を前提とする。
 
 ### /bot — 管理・設定
 
@@ -50,7 +65,7 @@
 - 同時実行制御（LLM: デフォルト 2 件・即時拒否。VOICEVOX: デフォルト 1 件・30 秒待機）
 - 2000 文字を超えるレスポンスは `.txt` ファイルとして添付
 - 会話セッションは 30 分で自動期限切れ
-- VC 接続後 5 分無操作で自動退出
+- ユーザーごとの VOICEVOX プロファイルを JSON ファイルに永続保存
 
 ## セットアップ
 
@@ -88,13 +103,14 @@ ollama list
 1. [Discord Developer Portal](https://discord.com/developers/applications) を開く
 2. **New Application** をクリックしてアプリを作成
 3. 左メニューの **Bot** → **Reset Token** でトークンをコピー（`DISCORD_TOKEN`）
-4. 左メニューの **OAuth2** → **Client ID** をコピー（`CLIENT_ID`）
-5. **OAuth2 URL Generator** で以下を選択して Bot 招待 URL を生成:
+4. **Bot** ページの **Privileged Gateway Intents** で **MESSAGE CONTENT INTENT** を ON にする（自動読み上げに必要）
+5. 左メニューの **OAuth2** → **Client ID** をコピー（`CLIENT_ID`）
+6. **OAuth2 URL Generator** で以下を選択して Bot 招待 URL を生成:
    - Scopes: `bot`, `applications.commands`
    - Bot Permissions: `Send Messages`, `Attach Files`, `Connect`, `Speak`
-6. 生成した URL でテストサーバーに Bot を招待
-7. Discord の **設定 → 詳細設定 → 開発者モード** を有効にする
-8. テストサーバーを右クリック → **サーバーIDをコピー**（`GUILD_ID`）
+7. 生成した URL でテストサーバーに Bot を招待
+8. Discord の **設定 → 詳細設定 → 開発者モード** を有効にする
+9. テストサーバーを右クリック → **サーバーIDをコピー**（`GUILD_ID`）
 
 ### 4. 環境変数の設定
 
@@ -218,4 +234,3 @@ ollama pull gemma4:e2b
 | `VOICEVOX_HOST` | — | `http://127.0.0.1:50021` | VOICEVOX エンジンの URL |
 | `VOICEVOX_TIMEOUT_MS` | — | `60000` | VOICEVOX API タイムアウト（ms）|
 | `VOICEVOX_MAX_CONCURRENT` | — | `1` | VOICEVOX 同時生成リクエスト数上限 |
-| `VOICE_IDLE_TIMEOUT_MS` | — | `300000` | VC アイドル自動退出（ms、5 分）|
