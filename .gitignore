@@ -6,6 +6,5 @@ dist/
 .DS_Store
 *.log
 
-# TTS サーバー（セットアップで生成されるファイル）
-tts-server/Qwen3-TTS-Openai-Fastapi/
-tts-server/profiles/*/reference.wav
+# ユーザープロファイル（実行時に生成）
+data/*.json
