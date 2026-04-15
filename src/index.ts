@@ -20,15 +20,14 @@ import { playAudio } from './lib/voice-manager.js';
 import { loadReactionDict, findMatchingReaction } from './lib/reaction-dict.js';
 import type { Command } from './lib/types.js';
 
-// 環境変数バリデーション
-const { DISCORD_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
+// 環境変数バリデーション（GUILD_ID は任意 — ユーザーアプリとして使う場合は不要）
+const { DISCORD_TOKEN, CLIENT_ID } = process.env;
 
-if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID) {
+if (!DISCORD_TOKEN || !CLIENT_ID) {
   console.error(
     'エラー: 以下の環境変数が設定されていません。.env ファイルを確認してください。\n' +
       (!DISCORD_TOKEN ? '  - DISCORD_TOKEN\n' : '') +
-      (!CLIENT_ID ? '  - CLIENT_ID\n' : '') +
-      (!GUILD_ID ? '  - GUILD_ID\n' : '')
+      (!CLIENT_ID ? '  - CLIENT_ID\n' : '')
   );
   process.exit(1);
 }

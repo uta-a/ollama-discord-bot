@@ -1,4 +1,10 @@
-import { AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import {
+  ApplicationIntegrationType,
+  AutocompleteInteraction,
+  ChatInputCommandInteraction,
+  InteractionContextType,
+  SlashCommandBuilder,
+} from 'discord.js';
 import { generateResponse, listModels, OllamaError, DEFAULT_MODEL } from '../lib/ollama.js';
 import { sendLongReply } from '../lib/reply.js';
 import { processAttachment, AttachmentError } from '../lib/attachment.js';
@@ -6,6 +12,15 @@ import { processAttachment, AttachmentError } from '../lib/attachment.js';
 export const data = new SlashCommandBuilder()
   .setName('ask')
   .setDescription('AI に単発で質問する（履歴なし）')
+  .setContexts(
+    InteractionContextType.Guild,
+    InteractionContextType.BotDM,
+    InteractionContextType.PrivateChannel
+  )
+  .setIntegrationTypes(
+    ApplicationIntegrationType.GuildInstall,
+    ApplicationIntegrationType.UserInstall
+  )
   .addStringOption((option) =>
     option
       .setName('prompt')

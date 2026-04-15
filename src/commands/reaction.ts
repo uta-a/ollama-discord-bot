@@ -1,7 +1,9 @@
 import {
+  ApplicationIntegrationType,
   AutocompleteInteraction,
   ChatInputCommandInteraction,
   EmbedBuilder,
+  InteractionContextType,
   SlashCommandBuilder,
 } from 'discord.js';
 import {
@@ -15,6 +17,8 @@ import {
 export const data = new SlashCommandBuilder()
   .setName('reaction')
   .setDescription('キーワードに対する Bot の反応を管理する')
+  .setContexts(InteractionContextType.Guild)
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
   .addSubcommand((sub) =>
     sub
       .setName('add')

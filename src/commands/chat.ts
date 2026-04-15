@@ -1,4 +1,10 @@
-import { AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import {
+  ApplicationIntegrationType,
+  AutocompleteInteraction,
+  ChatInputCommandInteraction,
+  InteractionContextType,
+  SlashCommandBuilder,
+} from 'discord.js';
 import { chatWithHistory, listModels, OllamaError } from '../lib/ollama.js';
 import { sendLongReply } from '../lib/reply.js';
 import {
@@ -15,6 +21,15 @@ import { processAttachment, AttachmentError } from '../lib/attachment.js';
 export const data = new SlashCommandBuilder()
   .setName('chat')
   .setDescription('AI とチャットする（会話履歴あり）')
+  .setContexts(
+    InteractionContextType.Guild,
+    InteractionContextType.BotDM,
+    InteractionContextType.PrivateChannel
+  )
+  .setIntegrationTypes(
+    ApplicationIntegrationType.GuildInstall,
+    ApplicationIntegrationType.UserInstall
+  )
   .addStringOption((option) =>
     option
       .setName('prompt')

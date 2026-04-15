@@ -1,6 +1,8 @@
 import {
+  ApplicationIntegrationType,
   ChatInputCommandInteraction,
   GuildMember,
+  InteractionContextType,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from 'discord.js';
@@ -14,6 +16,8 @@ import {
 export const data = new SlashCommandBuilder()
   .setName('voice')
   .setDescription('ボイスチャンネルの参加・退出')
+  .setContexts(InteractionContextType.Guild)
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
   .addSubcommand((sub) =>
     sub.setName('join').setDescription('Bot をあなたのボイスチャンネルに参加させる')
   )

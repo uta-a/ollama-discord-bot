@@ -1,8 +1,10 @@
 import {
+  ApplicationIntegrationType,
   AutocompleteInteraction,
   ChatInputCommandInteraction,
   EmbedBuilder,
   GuildMember,
+  InteractionContextType,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from 'discord.js';
@@ -36,6 +38,8 @@ import {
 export const data = new SlashCommandBuilder()
   .setName('voicevox')
   .setDescription('VOICEVOX 関連コマンド')
+  .setContexts(InteractionContextType.Guild)
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
   .addSubcommand((sub) =>
     sub
       .setName('say')

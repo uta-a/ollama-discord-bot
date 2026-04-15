@@ -60,6 +60,20 @@
 | `/bot ollama action:<start/stop>` | Ollama サーバーを起動・停止 |
 | `/bot config key:<項目> value:<値>` | サーバー設定を確認・変更 |
 
+### /help — コマンド一覧
+
+`/help` を実行するとカテゴリ別のコマンド一覧が表示されます（自分だけに見える ephemeral 応答）。
+
+## DM・ユーザーアプリとして使う
+
+`/ask` `/chat` `/help` はユーザーアプリとしてアカウントにインストールすると、Bot が参加していないサーバーや**ユーザー間 DM** でも使えます。
+
+1. Discord Developer Portal → アプリ → **Installation** タブで **User Install** を有効化
+2. 表示される Install Link から自分のアカウントにインストール
+3. `npm run deploy-commands` でグローバル登録（初回のみ）
+
+詳しくは [SETUP.md](./SETUP.md) を参照。
+
 ### その他の特徴
 
 - 同時実行制御（LLM: デフォルト 2 件・即時拒否。VOICEVOX: デフォルト 1 件・30 秒待機）
@@ -217,7 +231,7 @@ ollama pull gemma4:e2b
 - Bot に **接続** と **発言** 権限があるか確認
 
 **環境変数エラーで起動しない**
-`.env` ファイルに `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID` が設定されているか確認する。
+`.env` ファイルに `DISCORD_TOKEN` と `CLIENT_ID` が設定されているか確認する（`GUILD_ID` は任意）。
 
 ## 環境変数
 
@@ -225,7 +239,7 @@ ollama pull gemma4:e2b
 |-------|------|-----------|------|
 | `DISCORD_TOKEN` | ○ | — | Discord Bot のトークン |
 | `CLIENT_ID` | ○ | — | Discord アプリケーションの Client ID |
-| `GUILD_ID` | ○ | — | テストサーバーの ID |
+| `GUILD_ID` | — | — | テストサーバーの ID（`npm run deploy-commands` 実行時に旧 guild コマンドを削除するために使用） |
 | `OLLAMA_HOST` | — | `http://127.0.0.1:11434` | Ollama のホスト URL |
 | `OLLAMA_MODEL` | — | `gemma4` | デフォルトモデル名 |
 | `MAX_CONCURRENT` | — | `2` | 同時処理可能な LLM リクエスト数 |

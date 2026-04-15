@@ -1,16 +1,34 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import {
+  ApplicationIntegrationType,
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  InteractionContextType,
+  SlashCommandBuilder,
+} from 'discord.js';
 
 export const data = new SlashCommandBuilder()
   .setName('help')
-  .setDescription('利用可能なコマンド一覧を表示する');
+  .setDescription('利用可能なコマンド一覧を表示する')
+  .setContexts(
+    InteractionContextType.Guild,
+    InteractionContextType.BotDM,
+    InteractionContextType.PrivateChannel
+  )
+  .setIntegrationTypes(
+    ApplicationIntegrationType.GuildInstall,
+    ApplicationIntegrationType.UserInstall
+  );
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   const embed = new EmbedBuilder()
     .setTitle('コマンド一覧')
+    .setDescription(
+      'Bot をユーザーアプリとしてインストールすると DM でも `/ask` `/chat` `/help` が使えます。'
+    )
     .setColor(0x5865f2)
     .addFields(
       {
-        name: '💬 AI チャット',
+        name: '💬 AI チャット（DM でも使えます）',
         value: [
           '`/ask prompt:` — AI に単発で質問する（履歴なし）',
           '`/chat prompt:` — AI と会話する（履歴あり）',
@@ -19,7 +37,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join('\n'),
       },
       {
-        name: '🔧 Bot 管理',
+        name: '🔧 Bot 管理（サーバー限定）',
         value: [
           '`/bot status` — Bot の状態を確認する',
           '`/bot models` — 利用可能な AI モデル一覧',
@@ -28,14 +46,14 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join('\n'),
       },
       {
-        name: '🎙️ ボイスチャンネル',
+        name: '🎙️ ボイスチャンネル（サーバー限定）',
         value: [
           '`/voice join` — Bot をあなたの VC に参加させる',
           '`/voice leave` — Bot を VC から退出させる',
         ].join('\n'),
       },
       {
-        name: '🔊 VOICEVOX 読み上げ',
+        name: '🔊 VOICEVOX 読み上げ（サーバー限定）',
         value: [
           '`/voicevox say text:` — テキストを一度だけ読み上げる',
           '`/voicevox auto speaker:` — このチャンネルで自分の発言を自動読み上げ ON',
@@ -47,7 +65,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join('\n'),
       },
       {
-        name: '📖 VOICEVOX 辞書',
+        name: '📖 VOICEVOX 辞書（サーバー限定）',
         value: [
           '`/voicevox dict add surface: pronunciation:` — 読み方を辞書登録',
           '`/voicevox dict list` — 登録済み辞書一覧',
@@ -55,7 +73,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ].join('\n'),
       },
       {
-        name: '🗣️ キーワード反応',
+        name: '🗣️ キーワード反応（サーバー限定）',
         value: [
           '`/reaction add trigger: response:` — キーワードと返答を登録',
           '`/reaction list` — 登録済み反応一覧',

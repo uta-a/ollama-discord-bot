@@ -72,10 +72,20 @@ ollama --version
 
 生成した URL をブラウザで開き、テストサーバーに Bot を招待する。
 
-### 2-4. サーバー ID の取得
+### 2-4. サーバー ID の取得（任意）
+
+`GUILD_ID` は `npm run deploy-commands` 実行時に旧ギルドコマンドを自動削除するためにのみ使用する（Bot の動作自体には不要）。
 
 1. Discord の **設定 → 詳細設定 → 開発者モード** を有効にする
 2. テストサーバーのアイコンを右クリック → **サーバー ID をコピー**（`GUILD_ID`）
+
+### 2-5. ユーザーアプリ（DM 対応）を有効化する
+
+Bot をユーザーアカウントにインストールすると `/ask` `/chat` `/help` をユーザー間 DM でも使えるようになる。
+
+1. Developer Portal → アプリ → **Installation** タブを開く
+2. **Default Install Settings** の **User Install** にチェックを入れる（`applications.commands` スコープを追加）
+3. 保存後に表示される **Install Link** から自分のアカウントにインストールする
 
 ---
 
@@ -104,7 +114,7 @@ touch .env
 # 必須
 DISCORD_TOKEN=your-bot-token
 CLIENT_ID=your-application-client-id
-GUILD_ID=your-test-server-id
+GUILD_ID=your-test-server-id   # 任意（旧 guild コマンド削除用）
 
 # Ollama（省略可）
 OLLAMA_HOST=http://127.0.0.1:11434
@@ -135,13 +145,20 @@ npm install
 
 ## 6. スラッシュコマンドの登録
 
-Discord にスラッシュコマンドを登録する（初回、またはコマンドを追加・変更したとき）:
+Discord にスラッシュコマンドをグローバル登録する（初回、またはコマンドを追加・変更したとき）:
 
 ```bash
 npm run deploy-commands
 ```
 
-成功すると `Registered N commands.` と表示される。
+成功すると以下のようなメッセージが表示される:
+
+```
+旧 guild コマンドをクリアしました。     # GUILD_ID が設定されている場合のみ
+N 個のコマンドをグローバル登録しました（反映に最大 1 時間かかります）。
+```
+
+> **注意**: グローバルコマンドは Discord の全クライアントへの反映に最大 1 時間かかる。急ぎの場合は Discord クライアントを再起動すると早まることがある。
 
 ---
 
@@ -399,7 +416,11 @@ ollama pull gemma4:e2b
 - Bot に **接続** と **発言** 権限があるか確認
 
 **環境変数エラーで起動しない**
-- `.env` に `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID` が設定されているか確認する
+- `.env` に `DISCORD_TOKEN` と `CLIENT_ID` が設定されているか確認する（`GUILD_ID` は任意）
+
+**DM でコマンドが表示されない**
+- Developer Portal の **Installation** タブで User Install を有効化しているか確認する
+- `npm run deploy-commands` でグローバル登録済みか確認する（反映まで最大 1 時間）
 
 **`@discordjs/opus` のビルドエラー（macOS）**
 ```bash

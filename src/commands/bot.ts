@@ -1,4 +1,9 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import {
+  ApplicationIntegrationType,
+  ChatInputCommandInteraction,
+  InteractionContextType,
+  SlashCommandBuilder,
+} from 'discord.js';
 import { getOllamaStatus, listModels, OllamaError } from '../lib/ollama.js';
 import { getSessionCount, getUserModel } from '../lib/conversation.js';
 import { startOllama, stopOllama } from '../lib/ollama-process.js';
@@ -13,6 +18,8 @@ import {
 export const data = new SlashCommandBuilder()
   .setName('bot')
   .setDescription('Bot の管理・設定')
+  .setContexts(InteractionContextType.Guild)
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
   .addSubcommand((sub) =>
     sub.setName('status').setDescription('Bot の状態を表示する')
   )
@@ -57,6 +64,14 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.inGuild()) {
+    await interaction.reply({
+      content: 'このコマンドはサーバー内でのみ使用できます。',
+      ephemeral: true,
+    });
+    return;
+  }
+
   const subcommand = interaction.options.getSubcommand();
 
   switch (subcommand) {
